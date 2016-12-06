@@ -1,0 +1,152 @@
+@import "normalize";
+@import "milligram";
+
+$color-error: #FF0000;
+$color-warning: #ff9300;
+
+.warning {
+  color: $color-warning;
+}
+
+.error {
+  color: $color-error;
+}
+
+
+body {
+
+  header {
+    color: $color-initial;
+    background: $color-primary;
+    position: fixed;
+    width: 100%;
+    z-index: 200;
+
+    .header {
+
+      h3 {
+        margin: 15px 0;
+      }
+
+      .server-info,
+      .settings {
+        float: right;
+        font-size: 1.5em;
+        width: 3rem;
+        text-align: center;
+        cursor: pointer;
+      }
+    }
+
+    #progress-bar {
+      height: 3px;
+      background: #00d100;
+      width: 0;
+    }
+  }
+
+  .content {
+    padding-top: 100px;
+    padding-bottom: 100px;
+
+    .dirlist {
+
+      ul {
+
+        &.folders {
+          list-style: none;
+
+          li {
+
+            .folder-title {
+              font-weight: bold;
+              color: black;
+              background: #cccccc;
+              padding: 5px 10px;
+
+              .arrow {
+                width: 20px;
+                display: block;
+                height: 20px;
+                color: black;
+                float: left;
+
+                &:before {
+                  content: '▶';
+                }
+
+                &.down {
+                  &:before {
+                    content: '▼';
+                  }
+                }
+              }
+
+              .status {
+                text-align: right;
+              }
+            }
+            .folder-files {
+
+              &.minimized {
+                display: none;
+              }
+
+              small {
+                display: block;
+                color: #cccccc;
+              }
+
+              .file {
+
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .main-buttons {
+
+      .button-snapshot,
+      .button-comparsion {
+        display: block;
+        margin: 0 auto;
+        width: 70%;
+        padding: 20px;
+        text-align: center;
+        font-size: 2rem;
+        height: auto;
+      }
+
+      #action-form-1,
+      #action-form-2 {
+        display: block;
+      }
+      #action-form-3 {
+        display: none;
+      }
+    }
+  }
+
+  footer {
+    color: $color-initial;
+    background: $color-primary;
+    padding: 15px 0;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+
+    a {
+      color: $color-initial;
+      text-decoration: underline;
+    }
+  }
+}
+
+fieldset {
+
+  legend {
+    font-size: 1.8em;
+  }
+}

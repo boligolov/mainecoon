@@ -1,0 +1,33 @@
+doctype html
+html
+    head
+        | <?= $header; ?>
+    body
+        header
+            .container
+                .row.header
+                    .column.column-20
+                        h3 Mainecoon
+                    .column
+                        span.control--toggle-all(data-minimized="") Свернуть всё
+
+                    .column.column-10
+                        .server-info
+                            i(class="fa fa-info" aria-hidden="true")
+                            .server-info-block
+                        .settings
+                            i(class="fa fa-cog" aria-hidden="true")
+                            .settings-block
+            #progress-bar
+        .content
+            .container
+                .row
+                    .column
+                        .logs
+                .row
+                    .column
+                        .dirlist
+                        #content
+                            <?= $content; ?>
+        footer
+            | <?= $footer; ?>

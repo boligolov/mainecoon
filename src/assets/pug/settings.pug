@@ -1,0 +1,97 @@
+form(action="/mainecoon.php" method="POST")
+    input(type="hidden" name="action" value="settings")
+    fieldset
+        legend <?= Lang::t('settings/legend/general'); ?>
+
+        label(for="config_write") Сохранять конфигурацию в файл .mainecoon
+        input(type="checkbox" name="config_write" value="1" id="config_write")
+
+        label(for="test_requirements") Тестировать среду на соответсвованияе требованиям
+        input(type="checkbox" name="test_requirements" value="1" id="test_requirements")
+
+        label(for="test_requirements_on_ajax") Тестировать среду на соответсвованияе требованиям при AJAX-запросах
+        input(type="checkbox" name="test_requirements_on_ajax" value="1" id="test_requirements_on_ajax")
+
+        label(for="debug") Включить отладку
+        input(type="checkbox" name="debug" value="1" id="debug")
+
+        label(for="language") Язык по-умолчанию
+        select(name="language" id="language")
+            option(value="ru") русский
+            option(value="en") английский
+
+    fieldset
+        legend <?= Lang::t('settings/legend/temp'); ?>
+
+        label(for="temp_dir") Имя временного каталога
+        input(type="text" name="temp_dir" id="temp_dir" value="mainecoon_temp")
+
+        label(for="temp_filename") Имя временного файла с общей информацией
+        input(type="text" name="temp_filename" id="temp_filename" value="mainecoon.temp")
+
+        label(for="temp_flag") Имя временного файла-флага
+        input(type="text" name="temp_flag" id="temp_flag" value="mainecoon.flag")
+
+        label(for="temp_dir_create") Пытаться создать каталог, если не существует
+        input(type="checkbox" name="temp_dir_create" value="1" id="temp_dir_create" checked=)
+
+        label(for="temp_dir_clear_before") Очищать временный каталог от файлов перед работой
+        input(type="checkbox" name="temp_dir_clear_before" value="1" id="temp_dir_clear_before" checked=)
+
+    fieldset
+        legend <?= Lang::t('settings/legend/exclude'); ?>
+
+        label(for="exclude_path") Маски путей
+        textarea(name="exclude[path]" id="exclude_path")
+            | .git
+            | .idea
+            | nbproject
+            | .buildpath
+            | .project
+            | .settings
+            | .DS_Store
+            | .vagrant
+
+        label(for="exclude_ext") Расширения для исключения
+        textarea(name="exclude[ext]" id="exclude_ext")
+            | jpg
+            | jpeg
+            | png
+            | bmp
+            | gif
+            | mp4
+            | mp3
+            | ogg
+
+        label(for="exclude_mime") Mime для исключения
+        textarea(name="exclude[mime]" id="exclude_mime")
+
+        label(for="exclude_size_more") Максимальный размер файла
+        input(type="text" name="exclude[size_more]" id="exclude_size_more" value="1048576")
+
+        label(for="exclude_size_less") Максимальный размер файла
+        input(type="text" name="exclude[size_less]" id="exclude_size_less" value="0")
+
+    fieldset
+        legend <?= Lang::t('settings/legend/params'); ?>
+
+        input(type="checkbox" name="check[md5]" value="1" id="check_md5" checked=)
+        label(for="check_md5") MD5
+
+        input(type="checkbox" name="check[mimetype]" value="1" id="check_mimetype" checked=)
+        label(for="check_mimetype") Mime Type
+
+        input(type="checkbox" name="check[size]" value="1" id="check_size" checked=)
+        label(for="check_size") Size
+
+        input(type="checkbox" name="check[rights]" value="1" id="check_rights" checked=)
+        label(for="check_rights") Rights
+
+        input(type="checkbox" name="check[mtime]" value="1" id="check_mtime" checked=)
+        label(for="check_mtime") MTime
+
+        input(type="checkbox" name="check[atime]" value="1" id="check_atime" checked=)
+        label(for="check_atime") ATime
+
+        input(type="checkbox" name="check[ctime]" value="1" id="check_ctime" checked=)
+        label(for="check_ctime") CTime

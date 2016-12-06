@@ -1,0 +1,13 @@
+.row.main-buttons
+    .column.column-50
+        form(action="/mainecoon.php" method="post" id="action-form-1")
+            input(type="hidden" name="action" value="snapshot")
+            button(type="submit" class="button-snapshot") Сделать снимок
+        form(action="/mainecoon.php" method="post" id="action-form-3")
+            input(type="hidden" name="action" value="result")
+            button(type="submit" class="button-snapshot") Сохранить снимок
+    .column.column-50
+        form(action="/mainecoon.php" method="post" id="action-form-2" enctype="multipart/form-data")
+            input(type="hidden" name="action" value="comparsion")
+            input(type="file" name="file")
+            button(type="submit" class="button-comparsion") Выполнить сравнение

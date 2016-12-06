@@ -1,0 +1,12 @@
+{
+    'version': '0.1a',
+    'exclude_path': {
+        '.git',
+        '.idea',
+        '.svn'
+    },
+    'exclude_ext': {
+        'jpg', 'jpeg', 'png', 'bmp', 'gif', 'mp4', 'mp3', 'ogg'
+    },
+
+}
