@@ -40,11 +40,23 @@ class Request
         $this->action = isset($_POST['action']) ? trim($_POST['action']) : '';
         $this->folder = isset($_POST['folder']) ? trim($_POST['folder']) : '';
         $this->post = isset($_POST) ? $_POST['folder'] : array();
-        $this->file = isset($_FILES) ? $_FILES['file'] : array();
+        $this->file = isset($_FILES) ? $_FILES['file'] : array('uploaded' => false);
 
-        if ($this->file['tmp_name'] && $this->file['size'] && file_exists($this->file['tmp_name']))
+        if (isset($this->file['tmp_name']) && isset($this->file['size']) && file_exists($this->file['tmp_name']))
         {
-            Functions::uploadFile($this->file);
+            $this->uploadFile();
         }
+    }
+
+    public function uploadFile()
+    {
+        $config = \Mainecoon\Config::getInstance();
+
+        $fileTo = $config->get('temp.dir').DS.$config->get('temp.uploaded');
+
+        copy($this->file['tmp_name'], $fileTo);
+        chmod($this->file, 0644);
+        unlink($this->file['tmp_name']);
+        $this->file['uploaded'] = true;
     }
 }

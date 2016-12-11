@@ -18,7 +18,7 @@ foreach ($list as $link)
     {
         ?>
         <script src="<?= $link; ?>"></script>
-        <?
+        <?php
     }
 }
 ?>

@@ -4,26 +4,28 @@ namespace Mainecoon;
 
 class Mainecoon {
 
-    private $dir = '.';
-    private $headers;
-    private $file = ''; // временный файл со структурой каталогов
-    private $errors = [];
-    private $logs = [];
-    //private $is_ready = false;
+    private $state = array(
+        'salt'              => '',
+        'operation'         => '',
+        'operation_start'   => '',
+        'operation_error'   => 0,
+        'operation_end'     => '',
+        'uploaded_file'     => '',
+        'uploaded_checked'  => false
+    );
 
-    private $method = 'GET';
-    private $is_ajax = false;
-    private $domain;
-    private $subdomain;
 
-    public $fileList = [];
-    public $dirList = [];
+    public $errors = array();
+    public $logs = array();
+    public $fileList = array();
+    public $dirList = array();
 
     /**
      *  Переключатель определяет, загружена ли конфигурация.
      *  Если нет - показываем окно с настройками "по-умолчанию".
      */
-    public $display_settings_page = true;
+    private $display_settings_page = true;
+
 
     /**
      *   Поля для объектов-хранилищ
@@ -38,6 +40,34 @@ class Mainecoon {
     public function __construct()
     {
 
+    }
+
+    public function disableSettingsPage()
+    {
+        $this->display_settings_page = false;
+    }
+
+    public function loadData()
+    {
+        $state = $this->loadTemp();
+
+        if (!$state)
+        {
+            $this->state['salt'] = Functions::salt();
+
+            $this->saveData();
+
+            return false;
+        }
+
+        $this->state = array_merge($this->state, $state);
+
+        return true;
+    }
+
+    public function saveData()
+    {
+        $this->writeTemp($this->state);
     }
 
 
@@ -74,13 +104,13 @@ class Mainecoon {
 
             if ($version[0] < 5)
             {
-                $this->error(Lang::t('php/outdated'));
+                $this->error(Lang::t('php.outdated'));
                 $done = false;
             }
 
             if ($version[0] >= 5 && $version[1] < 3)
             {
-                $this->error(Lang::t('php/outdated'));
+                $this->error(Lang::t('php.outdated'));
                 $done = false;
             }
 
@@ -92,17 +122,17 @@ class Mainecoon {
                     // Если не существует и в настройках указано создавать - пытаемся создать
                     if (mkdir($this->config->get('temp.dir'), 0755))
                     {
-                        $this->log(Lang::t('debug/temp_created'));
+                        $this->log(Lang::t('debug.temp_created'));
                     }
                     else
                     {
-                        $this->view->error(Lang::t('temp/cannot_create'));
+                        $this->view->error(Lang::t('temp.cannot_create'));
                         $done = false;
                     }
                 }
                 else
                 {
-                    $this->error(Lang::t('temp/not_exists'));
+                    $this->error(Lang::t('temp.not_exists'));
                     $done = false;
                 }
             }
@@ -110,12 +140,19 @@ class Mainecoon {
             // Проверяем временный каталог на запись
             if (!is_writable($this->config->get('temp.dir')))
             {
-                $this->error(Lang::t('temp/cannot_write'));
+                $this->error(Lang::t('temp.cannot_write'));
                 $done = false;
             }
-            $this->log(Lang::t('debug/temp_writable'));
+            $this->log(Lang::t('debug.temp_writable'));
 
-            //TODO: очищаем временный каталог
+            if ($this->config->get('temp.clean') && !$this->state['operation'])
+            {
+                $this->cleanTemp(array(
+                    $this->config->get('temp.file'),
+                    $this->config->get('temp.uploaded'),
+                    $this->config->get('temp.snapshot')
+                ));
+            }
 
             //TODO: проверка ZIP-библиотеки
 
@@ -125,8 +162,26 @@ class Mainecoon {
             }
         }
 
+        return $done;
+    }
 
 
+    public function cleanTemp($exclude = array())
+    {
+        foreach ($exclude as &$item)
+        {
+            $item = DIR_TEMP.$item;
+        }
+
+        $temp_files = glob(DIR_TEMP.'*');
+
+        foreach ($temp_files as $file)
+        {
+            if (!in_array($file, $exclude))
+            {
+                unlink($file);
+            }
+        }
     }
 
 
@@ -135,11 +190,15 @@ class Mainecoon {
     {
         if (!$this->request->folder)
         {
+            $this->state['operation'] = 'snapshot';
+            $this->state['operation_start'] = time();
+            $this->saveData();
+
             // Собираем список каталогов
             $this->getDirList();
 
             // Пишем его во временный файл
-            $this->writeTemp($this->dirList);
+            $this->writeTemp($this->dirList, $this->config->get('temp.snapshot'));
 
             // Разворачиваем список каталогов во временные файлы
             $this->deployFolders();
@@ -156,8 +215,12 @@ class Mainecoon {
         }
         elseif($this->request->folder)
         {
+            $this->state['operation'] = 'snapshot_folder';
+            $this->state['operation_end'] = time();
+            $this->saveData();
+
             // Подгружаем временный файл, чтобы обновить его
-            $this->dirList = $this->loadTemp();
+            $this->dirList = $this->loadTemp($this->config->get('temp.snapshot'));
 
             // Получаем путь, по которому идем
             if (!empty($this->dirList[$this->request->folder]))
@@ -168,7 +231,7 @@ class Mainecoon {
                 // Пишем во временные файлы
                 $this->writeTemp($this->fileList, $this->request->folder.'.temp');
                 $this->dirList[$this->request->folder]['files'] = $this->fileList;
-                $this->writeTemp($this->dirList);
+                $this->writeTemp($this->dirList, $this->config->get('temp.snapshot'));
 
                 $response = [
                     'message' => 'snapshot_folder',
@@ -197,18 +260,35 @@ class Mainecoon {
 
     public function actionComparsion()
     {
-        // Проверка загруженного файла
-        // Очистка временных файлов (кроме загруженного)
-        // Разворачивание загруженного файла
-        // Отрисовка развернутого файла в браузере - каталогов и файлов
-        // Получение реальных
+        if ($this->request->file['uploaded'])
+        {
+            // Проверка загруженного файла
+            $this->dirList = $this->loadTemp($this->config->get('temp.uploaded'));
+
+            if (!$this->dirList)
+            {
+                // Отправляем JSON с ошибкой
+            }
+
+            // Очистка временных файлов (кроме загруженного)
+            $this->cleanTemp(array(
+                $this->config->get('temp.file'),
+                $this->config->get('temp.uploaded')
+            ));
+
+            // Разворачивание загруженного файла
+            $this->deployFolders();
+
+            // Отрисовка развернутого файла в браузере - каталогов и файлов
+            // Получение реальных
+        }
     }
 
     public function actionResult()
     {
         if ($this->request->method == 'POST')
         {
-            $file = $this->config->get('temp.dir').DS.$this->config->get('temp.file');
+            $file = DIR_TEMP.$this->config->get('temp.shapshot');
             $filename = date('Y-m-d').'_'.$this->request->domain.'_'.'mainecoon.data';
             $md5 = md5_file($file);
 
@@ -310,7 +390,7 @@ class Mainecoon {
             $file = $this->config->get('temp.file');
         }
 
-        $file = $this->config->get('temp.dir').DIRECTORY_SEPARATOR.$file;
+        $file = DIR_TEMP.$file;
 
         file_put_contents($file, serialize($data));
     }
@@ -321,11 +401,18 @@ class Mainecoon {
     {
         if (!$file)
         {
-            $file = $this->config->get('temp.dir').DIRECTORY_SEPARATOR.$this->config->get('temp.file');
+            $file = $this->config->get('temp.file');
         }
 
-        $content = file_get_contents($file);
-        return unserialize($content);
+        $file = DIR_TEMP.$file;
+
+        if (file_exists($file))
+        {
+            $content = file_get_contents($file);
+            return unserialize($content);
+        }
+
+        return false;
     }
 
 
@@ -361,7 +448,7 @@ class Mainecoon {
         {
             if ($file == '.' || $file == '..') continue;
 
-            $path = $directory.DIRECTORY_SEPARATOR.$file;
+            $path = $directory.DS.$file;
 
             if (!is_dir($path)) continue;
 
@@ -389,8 +476,17 @@ class Mainecoon {
     {
         $list = glob($directory, GLOB_ONLYDIR | GLOB_NOSORT);
 
-        foreach ($list as $dir) {
-            $list = array_merge($list, $this->getDirs($dir.DIRECTORY_SEPARATOR.basename($directory)));
+        $excluded = $this->config->get('exclude.path');
+
+        foreach ($list as $key => $dir)
+        {
+            if (in_array($dir, $excluded))
+            {
+                unset($list[$key]);
+                continue;
+            }
+
+            $list = array_merge($list, $this->getDirs($dir.DS.basename($directory)));
         }
 
         return $list;
@@ -406,56 +502,53 @@ class Mainecoon {
             'files' => array()
         );
 
-        //TODO: исключение директории по маске пути
-
         $iterator = new \DirectoryIterator ($directory);
 
         foreach ($iterator as $info)
         {
             $filename = $info->__toString();
-            $path = $directory.DIRECTORY_SEPARATOR.$filename;
+            $path = $directory.DS.$filename;
 
             if ($info->isFile())
             {
-                $list['files'][$filename] = array(
-                    'comment'   => '',
-                    'size'      => '-',
-                    'mime'      => '-',
-                    'ctime'     => '-',
-                    'mtime'     => '-',
-                    'atime'     => '-',
-                    'ext'       => '-',
-                    'md5'       => '-',
-                    'rights'    => '-'
-                );
-
-                if ($this->config->get('check.size'))
+                
+                $_comment   = '';
+                $_size      = '-';
+                $_mime      = '-';
+                $_ctime     = '-';
+                $_mtime     = '-';
+                $_atime     = '-';
+                $_ext       = '-';
+                $_md5       = '-';
+                $_rights    = '-';
+                
+                
+                if ($this->config->get('check.ext'))
                 {
-                    $list['files'][$filename]['size'] = $info->getSize();
+                    $_ext = $info->getExtension();
 
-                    if ($list['files'][$filename]['size'] >  $this->config->get('exclude.size.more'))
+                    if (in_array($_ext, $this->config->get('exclude.ext')))
                     {
-                        $list['files'][$filename]['comment'] = 'Size more then '.$this->config->get('exclude.size.more').' bytes. Skipped.';
-                        $list['skipped']++;
-                        continue;
-                    }
-
-                    if ($list['files'][$filename]['size'] < $this->config->get('exclude.size.less'))
-                    {
-                        $list['files'][$filename]['comment'] = 'Size less then '.$this->config->get('exclude.size.less').' bytes. Skipped.';
+                        //$_comment = 'Extension '.$_ext.' in exclude list. Skipped.';
                         $list['skipped']++;
                         continue;
                     }
                 }
 
-
-                if ($this->config->get('check.ext'))
+                if ($this->config->get('check.size'))
                 {
-                    $list['files'][$filename]['ext'] = $info->getExtension();
+                    $_size = $info->getSize();
 
-                    if (in_array($list['files'][$filename]['ext'], $this->config->get('exclude.ext')))
+                    if ($_size >  $this->config->get('exclude.size.more'))
                     {
-                        $list['files'][$filename]['comment'] = 'Extension '.$list['files'][$filename]['ext'].' in exclude list. Skipped.';
+                        //$_comment = 'Size more then '.$this->config->get('exclude.size.more').' bytes. Skipped.';
+                        $list['skipped']++;
+                        continue;
+                    }
+
+                    if ($_size < $this->config->get('exclude.size.less'))
+                    {
+                        //$_comment = 'Size less then '.$this->config->get('exclude.size.less').' bytes. Skipped.';
                         $list['skipped']++;
                         continue;
                     }
@@ -463,88 +556,46 @@ class Mainecoon {
 
                 if ($this->config->get('check.mime'))
                 {
-                    $list['files'][$filename]['mime'] = mime_content_type($path);
+                    $_mime = mime_content_type($path);
                 }
 
                 if ($this->config->get('check.ctime'))
                 {
-                    $list['files'][$filename]['ctime'] = $info->getCTime();
+                    $_ctime = $info->getCTime();
                 }
                 if ($this->config->get('check.mtime'))
                 {
-                    $list['files'][$filename]['mtime'] = $info->getMTime();
+                    $_mtime = $info->getMTime();
                 }
                 if ($this->config->get('check.atime'))
                 {
-                    $list['files'][$filename]['atime'] = $info->getATime();
+                    $_atime = $info->getATime();
                 }
                 if ($this->config->get('check.md5'))
                 {
-                    $list['files'][$filename]['md5'] = md5_file($path);
+                    $_md5 = md5_file($path);
                 }
                 if ($this->config->get('check.rights'))
                 {
-                    $list['files'][$filename]['rights'] = $info->getPerms();
+                    $_rights = $info->getPerms();
                 }
 
-/*                $list[$filename] = [
-                    'comment' => '',
-                    'size' => $info->getSize(),
-                    'mime' => mime_content_type($path),
-                    'ctime' => $info->getCTime(),
-                    'mtime' => $info->getMTime(),
-                    'atime' => $info->getATime(),
-                    'ext' => $info->getExtension(),
-                    'md5' => md5_file($path),
-                    'rights' => $info->getPerms()
-                ];*/
-                //echo $info->__toString()."<br />";
+                $list['files'][$filename] = array(
+                    'comment'   => $_comment,
+                    'size'      => $_size,
+                    'mime'      => $_mime,
+                    'ctime'     => $_ctime,
+                    'mtime'     => $_mtime,
+                    'atime'     => $_atime,
+                    'ext'       => $_ext,
+                    'md5'       => $_md5,
+                    'rights'    => $_rights
+                );
             }
-/*            elseif (!$info->isDot ())
-            {
-                $list[$filename] = $this->directoryIteratoion($path);
-            }*/
         }
 
         $list['count'] = count($list['files']);
 
         return $list;
     }
-
-
-
-
-
-    /*	public function directoryIteratoion($directory)
-        {
-            $list = [];
-
-            $iterator = new DirectoryIterator ($directory);
-
-            foreach ($iterator as $info)
-            {
-                $filename = $info->__toString();
-                $path = $directory.DIRECTORY_SEPARATOR.$filename;
-
-                if ($info->isFile())
-                {
-                    $list[$filename] = [
-                        'size' => $info->getSize(),
-                        'mime' => mime_content_type($path),
-                        'ctime' => $info->getCTime(),
-                        'mtime' => $info->getMTime(),
-                        'atime' => $info->getATime(),
-                        'ext' => $info->getExtension(),
-                        'md5' => md5_file($path),
-                    ];
-                    //echo $info->__toString()."<br />";
-                }
-                elseif (!$info->isDot ())
-                {
-                    $list[$filename] = $this->directoryIteratoion($path);
-                }
-            }
-
-            return $list;
-        }*/
 }

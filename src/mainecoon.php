@@ -34,6 +34,7 @@ define('BASEPATH',       dirname(__FILE__).DS);
 define('DIR_MAINECOON',  BASEPATH.DIR_NAME);
 define('DIR_CLASSES',    DIR_MAINECOON.'classes'.DS);
 define('DIR_VIEW',       DIR_MAINECOON.'view'.DS);
+define('DIR_LANG',       DIR_MAINECOON.'languages'.DS);
 define('DIR_JS',         DIR_MAINECOON.'js'.DS);
 define('WEB_JS',         '\\'.DIR_NAME.'js'.DS);
 define('DIR_CSS',        DIR_MAINECOON.'css'.DS);
@@ -54,21 +55,26 @@ require_once DIR_CLASSES."Heartbeat.php";
 require_once DIR_CLASSES."View.php";
 #{/includes}#
 
-$Сonfig = Config::getInstance();
-$Request = Request::getInstance();
-$Cookie = Cookie::getInstance();
-$View = View::getInstance();
-Lang::setLanguage($Сonfig->language);
-
-
 $mainecoon = new Mainecoon();
-$mainecoon->config = $Сonfig;
-$mainecoon->request = $Request;
-$mainecoon->cookie = $Cookie;
-$mainecoon->view = $View;
-if ($Сonfig->loaded) $mainecoon->display_settings_page = false;
+$mainecoon->config = Config::getInstance();
 
-$mainecoon->test();
+if ($mainecoon->config->loaded)
+{
+    $mainecoon->disableSettingsPage();
+    Lang::setLanguage($mainecoon->config->get('language'));
+}
+
+$mainecoon->request = Request::getInstance();
+$mainecoon->cookie = Cookie::getInstance();
+$mainecoon->view = View::getInstance();
+
+$mainecoon->loadData();
+
+if (!$mainecoon->test())
+    $mainecoon->view->page('error', array('errors' => $mainecoon->errors));
+
+define('DIR_TEMP', BASEPATH.$mainecoon->config->get('temp.dir').DS);
+
 $mainecoon->route();
 
 

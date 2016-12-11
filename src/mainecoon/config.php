@@ -51,14 +51,22 @@ $config = array(
         /**
          *   Очищать временный каталог от файлов перед работой
          */
-        'clear' => true,
+        'clean' => true,
 
         /**
          *   Имя временного файла с общей информацией
          */
         'file' => 'mainecoon.temp',
 
-        'uploaded' => 'mainecoon.upload'
+        /**
+         *   Имя временного файла с внешним снимком
+         */
+        'uploaded' => 'mainecoon.upload',
+
+        /**
+         *   Имя временного файла с текущим снимком
+         */
+        'snapshot' => 'mainecoon.snapshot'
     ),
 
 
@@ -67,6 +75,9 @@ $config = array(
      */
     'config_write' => false,
 
+    'scan' => array(
+        'mode' => 'exclude' // exclude - исключать по расширению, include - включать только указанные расширения
+    ),
 
     'exclude' => array(
         'path' => array(
@@ -81,6 +92,10 @@ $config = array(
             'more' => 1048576, // байт
             'less' => 0,
         ),
+    ),
+
+    'include' => array(
+        'ext' => 'php html js tpl'
     ),
 
     /**

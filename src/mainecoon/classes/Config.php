@@ -36,27 +36,16 @@ class Config
 
         if (!$config)
         {
-            // Сия нелепая конструкция нужна для удобства создания standalone-файла
+            // В STANDALONE здесь будет готовый массив, но мы все равно покажем страницу настроек.
+            // В режиме обычного приложения мы подразумеваем, что имеем config.php, ибо он там лежит по-умолчанию.
+
             #{config}#
-            if (file_exists(DIR_MAINECOON."config.php"))
-            {
-                require_once DIR_MAINECOON."config.php"; // here $config
-                $this->loaded = true;
-            }
-            else
-            {
-                $config = $this->loadDefault(); // Загружаем предустановки
-                // Фла loaded не устанавливается, чтобы показать страницу с настройками
-            }
+            require_once DIR_MAINECOON."config.php"; // $config здесь
+            $this->loaded = true;
             #{/config}#
-            //$this->data = $config;
         }
 
         $this->parseConfig($config);
-
-/*        echo "<pre>";
-        print_r($this->data);
-        echo "</pre>";*/
 
         return $this;
     }
@@ -168,97 +157,6 @@ class Config
         return $config;
     }
 
-
-    /**
-     * Отдает конфигурацию "по-умолчанию".
-     *
-     * @return array
-     */
-    private function loadDefault()
-    {
-        return array(
-            /**
-             *      Тестирование окружения.
-             *      Если скрипт настроен и используется многократно, лучше отключить для большей производительности
-             */
-            'test_requirements' => true,
-
-
-            /**
-             *      Тестирование окружения при ajax-запросе.
-             *      По-умолчанию отключено.
-             *      Если скрипт настроен и используется многократно, лучше отключить для большей производительности
-             */
-            'test_requirements_on_ajax' => false,
-
-
-
-            /**
-             *   Язык интерфейса по-умолчанию
-             */
-            'language' => 'ru',
-
-
-            /**
-             *   Имя временного каталога
-             */
-            'temp_dir' => 'mainecoon_temp',
-
-            /**
-             *   Пытаться создать каталог, если не существует
-             */
-            'temp_dir_create' => true,
-
-            /**
-             *   Очищать временный каталог от файлов перед работой
-             */
-            'temp_dir_clear_before' => true, // Очищать за собой временный каталог
-
-            /**
-             *   Имя временного файла с общей информацией
-             */
-            'temp_filename' => 'mainecoon.temp',
-
-            /**
-             *   Имя временного файла-флага
-             */
-            'temp_flag' => 'mainecoon.flag',
-
-
-            /**
-             *   Сохранять конфигурацию в файл .mainecoon
-             */
-            'config_write' => false,
-
-
-            'exclude' => array(
-                'path' => array(
-                    '.git',
-                    '.idea',
-                ),
-                'ext'  => array('jpg', 'jpeg', 'png', 'bmp', 'gif', 'mp4', 'mp3', 'ogg'),
-                'mime' => array(),
-                'size' => array(
-                    'more' => 1048576, // байт
-                    'less' => 0,
-                ),
-            ),
-
-            /**
-             *   Список проверяемых и сохраняемых параметров файлов
-             */
-            'check' => array(
-                'md5' => true,
-                'mimetype' => true,
-                'size' => true,
-                'rights' => true,
-                'mtime' => true,
-                'atime' => true,
-                'ctime' => true,
-            ),
-        );
-    }
-
     public function save($data, $where = 'cookie')
     {
         if ($where == 'cookie')
@@ -300,6 +198,7 @@ class Config
 
     private function parseConfig($array = array(), $prefix = '')
     {
+        //TODO: выключать чтение прав, если работа в Windows
         foreach($array as $key => $value)
         {
             if ($prefix)
