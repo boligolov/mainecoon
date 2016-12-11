@@ -1,1 +1,2 @@
-https://milligram.github.io/  -- Milligram 1.2.0
+# mainecoon
+Simple site's files checker
