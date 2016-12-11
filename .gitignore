@@ -3,7 +3,11 @@
 .idea/
 node_modules/
 to_understand/
-dist/
+#dist/
+make.php
+make_phar.php
+test.php
+gulpfile.js
 
 
 
