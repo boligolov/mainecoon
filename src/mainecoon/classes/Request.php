@@ -20,6 +20,8 @@ class Request
     public $post;
     public $file;
 
+    private $config;
+
     private static $instance;
 
     public static function getInstance()
@@ -33,6 +35,8 @@ class Request
 
     public function __construct()
     {
+        $this->config = Config::getInstance();
+
         $this->method = isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) : 'GET';
         $this->is_ajax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 'xmlhttprequest' == strtolower($_SERVER['HTTP_X_REQUESTED_WITH']);
         $this->subdomain = count($hh = explode('.', $_SERVER['HTTP_HOST'])) > 2 ? array_slice($hh, 0, -2) : null;
@@ -50,9 +54,7 @@ class Request
 
     public function uploadFile()
     {
-        $config = \Mainecoon\Config::getInstance();
-
-        $fileTo = $config->get('temp.dir').DS.$config->get('temp.uploaded');
+        $fileTo = DIR_TEMP.$this->config->get('temp.uploaded');
 
         copy($this->file['tmp_name'], $fileTo);
         chmod($this->file, 0644);

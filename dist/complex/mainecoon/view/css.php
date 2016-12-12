@@ -3,6 +3,6 @@
     {
         ?>
         <link rel="stylesheet" href="<?= $link; ?>"/>
-        <?
+        <?php
     }
 ?>

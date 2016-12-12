@@ -53,6 +53,7 @@ require_once DIR_CLASSES."Lang.php";
 require_once DIR_CLASSES."Functions.php";
 require_once DIR_CLASSES."Heartbeat.php";
 require_once DIR_CLASSES."View.php";
+require_once DIR_CLASSES."Temp.php";
 #{/includes}#
 
 $mainecoon = new Mainecoon();
@@ -67,8 +68,9 @@ if ($mainecoon->config->loaded)
 $mainecoon->request = Request::getInstance();
 $mainecoon->cookie = Cookie::getInstance();
 $mainecoon->view = View::getInstance();
+$mainecoon->temp = Temp::getInstance();
 
-$mainecoon->loadData();
+$mainecoon->loadState();
 
 if (!$mainecoon->test())
     $mainecoon->view->page('error', array('errors' => $mainecoon->errors));

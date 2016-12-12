@@ -24,7 +24,7 @@ class Mainecoon {
      *  Переключатель определяет, загружена ли конфигурация.
      *  Если нет - показываем окно с настройками "по-умолчанию".
      */
-    private $display_settings_page = true;
+    private $settings_page = true;
 
 
     /**
@@ -33,8 +33,8 @@ class Mainecoon {
     public $config;
     public $request;
     public $cookie;
-    public $lang;
     public $view;
+    public $temp;
 
 
     public function __construct()
@@ -44,18 +44,18 @@ class Mainecoon {
 
     public function disableSettingsPage()
     {
-        $this->display_settings_page = false;
+        $this->settings_page = false;
     }
 
-    public function loadData()
+    public function loadState()
     {
-        $state = $this->loadTemp();
+        $state = $this->temp->load();
 
         if (!$state)
         {
             $this->state['salt'] = Functions::salt();
 
-            $this->saveData();
+            $this->saveState();
 
             return false;
         }
@@ -65,11 +65,21 @@ class Mainecoon {
         return true;
     }
 
-    public function saveData()
+    public function saveState()
     {
-        $this->writeTemp($this->state);
+        $this->temp->write($this->state);
     }
 
+
+    public function updateState($input = array())
+    {
+        foreach ($input as $key => $value)
+        {
+            $this->state[$key] = $value;
+        }
+
+        $this->saveState();
+    }
 
 
     public function error($message)
@@ -147,7 +157,7 @@ class Mainecoon {
 
             if ($this->config->get('temp.clean') && !$this->state['operation'])
             {
-                $this->cleanTemp(array(
+                $this->temp->clean(array(
                     $this->config->get('temp.file'),
                     $this->config->get('temp.uploaded'),
                     $this->config->get('temp.snapshot')
@@ -166,23 +176,7 @@ class Mainecoon {
     }
 
 
-    public function cleanTemp($exclude = array())
-    {
-        foreach ($exclude as &$item)
-        {
-            $item = DIR_TEMP.$item;
-        }
 
-        $temp_files = glob(DIR_TEMP.'*');
-
-        foreach ($temp_files as $file)
-        {
-            if (!in_array($file, $exclude))
-            {
-                unlink($file);
-            }
-        }
-    }
 
 
 
@@ -190,15 +184,16 @@ class Mainecoon {
     {
         if (!$this->request->folder)
         {
-            $this->state['operation'] = 'snapshot';
-            $this->state['operation_start'] = time();
-            $this->saveData();
+            $this->updateState(array(
+                'operation' => 'snapshot',
+                'operation_start' => time(),
+            ));
 
             // Собираем список каталогов
             $this->getDirList();
 
             // Пишем его во временный файл
-            $this->writeTemp($this->dirList, $this->config->get('temp.snapshot'));
+            $this->temp->write($this->dirList, $this->config->get('temp.snapshot'));
 
             // Разворачиваем список каталогов во временные файлы
             $this->deployFolders();
@@ -215,12 +210,13 @@ class Mainecoon {
         }
         elseif($this->request->folder)
         {
-            $this->state['operation'] = 'snapshot_folder';
-            $this->state['operation_end'] = time();
-            $this->saveData();
+            $this->updateState(array(
+                'operation' => 'snapshot_folder',
+                'operation_start' => time(),
+            ));
 
             // Подгружаем временный файл, чтобы обновить его
-            $this->dirList = $this->loadTemp($this->config->get('temp.snapshot'));
+            $this->dirList = $this->temp->load($this->config->get('temp.snapshot'));
 
             // Получаем путь, по которому идем
             if (!empty($this->dirList[$this->request->folder]))
@@ -229,9 +225,9 @@ class Mainecoon {
                 $this->fileList = $this->getFiles($this->dirList[$this->request->folder]['name']);
 
                 // Пишем во временные файлы
-                $this->writeTemp($this->fileList, $this->request->folder.'.temp');
+                $this->temp->write($this->fileList, $this->request->folder.'.temp');
                 $this->dirList[$this->request->folder]['files'] = $this->fileList;
-                $this->writeTemp($this->dirList, $this->config->get('temp.snapshot'));
+                $this->temp->write($this->dirList, $this->config->get('temp.snapshot'));
 
                 $response = [
                     'message' => 'snapshot_folder',
@@ -254,6 +250,10 @@ class Mainecoon {
             }
         }
 
+        $this->updateState(array(
+            'operation_end' => time(),
+        ));
+
         // Возвращаем пользователю объест статус и объект с каталогами
         $this->view->json($response);
     }
@@ -263,7 +263,7 @@ class Mainecoon {
         if ($this->request->file['uploaded'])
         {
             // Проверка загруженного файла
-            $this->dirList = $this->loadTemp($this->config->get('temp.uploaded'));
+            $this->dirList = $this->temp->load($this->config->get('temp.uploaded'));
 
             if (!$this->dirList)
             {
@@ -271,16 +271,32 @@ class Mainecoon {
             }
 
             // Очистка временных файлов (кроме загруженного)
-            $this->cleanTemp(array(
+            $this->temp->clean(array(
                 $this->config->get('temp.file'),
                 $this->config->get('temp.uploaded')
             ));
 
             // Разворачивание загруженного файла
-            $this->deployFolders();
+            $this->deployFolders('compare-');
 
             // Отрисовка развернутого файла в браузере - каталогов и файлов
-            // Получение реальных
+            $response = [
+                'message' => 'snapshot_summary',
+                'count' => count($this->dirList),
+                'html' => $this->view->render('folder_list', ['list' => $this->dirList], true),
+                'data' => $this->dirList,
+                'logs' => $this->logs,
+                'errors' => $this->errors
+            ];
+
+            // Получение реальных реальнх каталогов
+            // Сканирование реальных каталогов
+
+            $this->view->json($response);
+        }
+        elseif($this->request->folder)
+        {
+
         }
     }
 
@@ -288,7 +304,7 @@ class Mainecoon {
     {
         if ($this->request->method == 'POST')
         {
-            $file = DIR_TEMP.$this->config->get('temp.shapshot');
+            $file = DIR_TEMP.$this->config->get('temp.snapshot');
             $filename = date('Y-m-d').'_'.$this->request->domain.'_'.'mainecoon.data';
             $md5 = md5_file($file);
 
@@ -354,11 +370,11 @@ class Mainecoon {
 
 
 
-    private function deployFolders()
+    private function deployFolders($prefix = '')
     {
         foreach ($this->dirList as $hash => $item)
         {
-            $this->writeTemp('', $hash.'.temp');
+            $this->temp->write('', $prefix.$hash.'.temp');
         }
     }
 
@@ -383,37 +399,7 @@ class Mainecoon {
 
 
 
-    public function writeTemp($data = '', $file = '')
-    {
-        if (!$file)
-        {
-            $file = $this->config->get('temp.file');
-        }
 
-        $file = DIR_TEMP.$file;
-
-        file_put_contents($file, serialize($data));
-    }
-
-
-
-    private function loadTemp($file = '')
-    {
-        if (!$file)
-        {
-            $file = $this->config->get('temp.file');
-        }
-
-        $file = DIR_TEMP.$file;
-
-        if (file_exists($file))
-        {
-            $content = file_get_contents($file);
-            return unserialize($content);
-        }
-
-        return false;
-    }
 
 
 
@@ -458,10 +444,6 @@ class Mainecoon {
             {
                 $list[$path] = $this->simpleDirectoryIteratoion($path);
             }
-            /*		    else
-                        {
-                            $list[] = $file;
-                        }*/
 
         }
 
