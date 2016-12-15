@@ -1,27 +1,17 @@
 <?php
 
-namespace Mainecoon;
-
-class View
+class View extends General
 {
     private $headers = array();
     private $js = array();
     private $css = array();
 
-    private static $instance;
 
-    public static function getInstance()
+
+    public function __construct($data = array())
     {
-        if (self::$instance === null)
-        {
-            self::$instance = new self;
-        }
-        return self::$instance;
-    }
+        parent::__construct($data);
 
-
-    public function __construct()
-    {
         #{layout}#
         $this->layout = 'layout';
         #{/layout}#

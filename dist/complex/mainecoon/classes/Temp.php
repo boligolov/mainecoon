@@ -1,26 +1,10 @@
 <?php
 
-namespace Mainecoon;
-
-class Temp
+class Temp extends General
 {
-    private $config;
-
-    private static $instance;
-
-    public static function getInstance()
+    public function __construct($data = array())
     {
-        if (self::$instance === null)
-        {
-            self::$instance = new self;
-        }
-        return self::$instance;
-    }
-
-
-    public function __construct()
-    {
-        $this->config = Config::getInstance();
+        parent::__construct($data);
     }
 
 

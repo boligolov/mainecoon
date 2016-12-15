@@ -1,7 +1,5 @@
 <?php
 
-namespace Mainecoon;
-
 $start = microtime(true);
 
 define('MAINECOON', 'Mainecoon');
@@ -45,37 +43,66 @@ define('WEB_CSS',        '\\'.DIR_NAME.'css'.DS);
  * Подключение классов, без автозагрузчика, ибо не надо
  */
 #{includes}#
-require_once DIR_CLASSES."Config.php";
-require_once DIR_CLASSES."Request.php";
-require_once DIR_CLASSES."Cookie.php";
-require_once DIR_CLASSES."Mainecoon.php";
-require_once DIR_CLASSES."Lang.php";
-require_once DIR_CLASSES."Functions.php";
-require_once DIR_CLASSES."Heartbeat.php";
-require_once DIR_CLASSES."View.php";
-require_once DIR_CLASSES."Temp.php";
-#{/includes}#
-
-$mainecoon = new Mainecoon();
-$mainecoon->config = Config::getInstance();
-
-if ($mainecoon->config->loaded)
+function autoLoader($class)
 {
-    $mainecoon->disableSettingsPage();
-    Lang::setLanguage($mainecoon->config->get('language'));
+    $file = DIR_CLASSES.ucfirst($class).'.php';
+
+    if (is_file($file))
+    {
+        require_once($file);
+        return true;
+    }
+
+    return false;
 }
 
-$mainecoon->request = Request::getInstance();
-$mainecoon->cookie = Cookie::getInstance();
-$mainecoon->view = View::getInstance();
-$mainecoon->temp = Temp::getInstance();
+spl_autoload_register('autoLoader');
+spl_autoload_extensions('.php');
+#{/includes}#
+
+
+$Config = new Config();
+
+define('DIR_TEMP', BASEPATH.$Config->get('temp.dir').DS);
+
+$Language = new Language();
+$Language->setLanguage($Config->get('language'));
+$Language->loadLanguage();
+
+$Request = new Request();
+
+$Cookie = new Cookie();
+
+$View = new View(array(
+    'config' => $Config,
+    'lang'   => $Language,
+));
+
+$Temp = new Temp(array(
+    'config' => $Config,
+    'lang'   => $Language,
+));
+
+$mainecoon = new Mainecoon(array(
+    'config' => $Config,
+    'lang' => $Language,
+    'request' => $Request,
+    'cookie' => $Cookie,
+    'view' => $View,
+    'temp' => $Temp,
+));
+
+if ($Config->loaded)
+{
+    $mainecoon->disableSettingsPage();
+}
 
 $mainecoon->loadState();
 
 if (!$mainecoon->test())
     $mainecoon->view->page('error', array('errors' => $mainecoon->errors));
 
-define('DIR_TEMP', BASEPATH.$mainecoon->config->get('temp.dir').DS);
+
 
 $mainecoon->route();
 

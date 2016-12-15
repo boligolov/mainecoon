@@ -1,13 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: user
- * Date: 21.11.2016
- * Time: 17:26
- */
-
-namespace Mainecoon;
-
 
 class Cookie
 {
@@ -19,25 +10,12 @@ class Cookie
     public $language;
 
 
-    private static $instance;
-
-    public static function getInstance()
-    {
-        if (self::$instance === null)
-        {
-            self::$instance = new self;
-        }
-        return self::$instance;
-    }
-
     public function __construct()
     {
-        $request = Request::getInstance();
-
         $this->data = $_COOKIE;
         $this->expire = time() + (60 * 60 * 24); // 24 часа
         $this->remove = time() - (60 * 60 * 24); // 24 часа
-        $this->domain = $request->domain;
+        //$this->domain = $request->domain;
     }
 
 

@@ -1,6 +1,6 @@
 <?php
 
-$strings = array(
+return array(
     'php' => array(
         'outdated' => 'Устаревшая версия PHP. Для корректной работы требуется PHP версии 5.3 и выше',
     ),

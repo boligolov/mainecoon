@@ -1,8 +1,5 @@
 <?php
 
-namespace Mainecoon;
-
-
 class Config
 {
     private $data = array();
@@ -14,17 +11,8 @@ class Config
 
     public $loaded = false;
 
-    private static $instance;
 
-    public static function getInstance()
-    {
-        if (self::$instance === null)
-        {
-            self::$instance = new self;
-        }
-        return self::$instance;
-    }
-
+    
     public function __construct()
     {
         $config = array();
@@ -40,7 +28,7 @@ class Config
             // В режиме обычного приложения мы подразумеваем, что имеем config.php, ибо он там лежит по-умолчанию.
 
             #{config}#
-            require_once DIR_MAINECOON."config.php"; // $config здесь
+            $config = require_once(DIR_MAINECOON."config.php"); // $config здесь
             $this->loaded = true;
             #{/config}#
         }

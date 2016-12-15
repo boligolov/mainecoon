@@ -1,8 +1,6 @@
 <?php
 
-namespace Mainecoon;
-
-class Mainecoon {
+class Mainecoon extends General {
 
     private $state = array(
         'salt'              => '',
@@ -27,19 +25,9 @@ class Mainecoon {
     private $settings_page = true;
 
 
-    /**
-     *   Поля для объектов-хранилищ
-     */
-    public $config;
-    public $request;
-    public $cookie;
-    public $view;
-    public $temp;
-
-
-    public function __construct()
+    public function __construct($data = array())
     {
-
+        parent::__construct($data);
     }
 
     public function disableSettingsPage()
@@ -110,17 +98,8 @@ class Mainecoon {
             ($this->request->is_ajax && $this->config->get('test.on_ajax')))
         {
 
-            $version = explode('.', PHP_VERSION); // 0.1.2
-
-            if ($version[0] < 5)
-            {
-                $this->error(Lang::t('php.outdated'));
-                $done = false;
-            }
-
-            if ($version[0] >= 5 && $version[1] < 3)
-            {
-                $this->error(Lang::t('php.outdated'));
+            if (version_compare(phpversion(), '5.3.0', '<') == true) {
+                $this->error($this->lang->t('php.outdated'));
                 $done = false;
             }
 
@@ -132,17 +111,17 @@ class Mainecoon {
                     // Если не существует и в настройках указано создавать - пытаемся создать
                     if (mkdir($this->config->get('temp.dir'), 0755))
                     {
-                        $this->log(Lang::t('debug.temp_created'));
+                        $this->log($this->lang->t('debug.temp_created'));
                     }
                     else
                     {
-                        $this->view->error(Lang::t('temp.cannot_create'));
+                        $this->view->error($this->lang->t('temp.cannot_create'));
                         $done = false;
                     }
                 }
                 else
                 {
-                    $this->error(Lang::t('temp.not_exists'));
+                    $this->error($this->lang->t('temp.not_exists'));
                     $done = false;
                 }
             }
@@ -150,10 +129,10 @@ class Mainecoon {
             // Проверяем временный каталог на запись
             if (!is_writable($this->config->get('temp.dir')))
             {
-                $this->error(Lang::t('temp.cannot_write'));
+                $this->error($this->lang->t('temp.cannot_write'));
                 $done = false;
             }
-            $this->log(Lang::t('debug.temp_writable'));
+            $this->log($this->lang->t('debug.temp_writable'));
 
             if ($this->config->get('temp.clean') && !$this->state['operation'])
             {

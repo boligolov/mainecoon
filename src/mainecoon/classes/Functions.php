@@ -1,7 +1,5 @@
 <?php
 
-namespace Mainecoon;
-
 class Functions {
 
     public static function dumper($object) {
